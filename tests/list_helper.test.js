@@ -106,7 +106,7 @@ describe('most blogs', () => {
 });
 
 describe('most likes', () => {
-  test.only('when list has multiple blogs, equals the author with the most likes', () => {
+  test('when list has multiple blogs, equals the author with the most likes', () => {
     const most = {
       author: 'Edsger W. Dijkstra',
       likes: 17,
