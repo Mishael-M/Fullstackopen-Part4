@@ -133,10 +133,6 @@ describe('update of a blog', () => {
   });
 });
 
-afterAll(() => {
-  mongoose.connection.close();
-});
-
 describe('when there is initially one user in db', () => {
   beforeEach(async () => {
     await User.deleteMany({});
@@ -222,10 +218,48 @@ describe('when there is initially one user in db', () => {
     expect(result1.body.error).toContain('invalid username or password');
   });
 
-  test.only('creation of a blog post with valid user', async () => {
+  test('creation of a blog post with valid user', async () => {
     const usersAtStart = await helper.usersInDb();
     const startUser = { ...usersAtStart[0] };
     const userLength = startUser.blogs.length;
+
+    const loginInfo = {
+      username: 'root',
+      password: 'sekret',
+    };
+
+    const login = await api
+      .post('/api/login')
+      .send(loginInfo)
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+
+    const newBlog = {
+      title: 'New Blog here',
+      author: 'Mishael Magsanoc',
+      url: 'http://example.com',
+      likes: 5,
+      userId: startUser.id,
+    };
+
+    let token = 'bearer ' + login.body.token;
+
+    await api
+      .post('/api/blogs')
+      .send(newBlog)
+      .set('Authorization', token)
+      .expect(200)
+      .expect('Content-Type', /application\/json/);
+
+    const usersAtEnd = await helper.usersInDb();
+    const endUser = usersAtEnd[0];
+
+    expect(endUser.blogs).toHaveLength(userLength + 1);
+  });
+
+  test.only('blog post not added without a proper token', async () => {
+    const usersAtStart = await helper.usersInDb();
+    const startUser = { ...usersAtStart[0] };
 
     const newBlog = {
       title: 'New Blog here',
@@ -238,11 +272,12 @@ describe('when there is initially one user in db', () => {
     await api
       .post('/api/blogs')
       .send(newBlog)
-      .expect(200)
+      .set('Authorization', null)
+      .expect(401)
       .expect('Content-Type', /application\/json/);
-    const usersAtEnd = await helper.usersInDb();
-    const endUser = usersAtEnd[0];
-
-    expect(endUser.blogs).toHaveLength(userLength + 1);
   });
+});
+
+afterAll(() => {
+  mongoose.connection.close();
 });
